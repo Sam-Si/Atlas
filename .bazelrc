@@ -1,0 +1,94 @@
+# ============================================================
+# 1. DYNAMIC GLOBAL CACHE
+# ============================================================
+startup --output_base=/tmp/bazel-global-cache
+
+# ============================================================
+# 2. STARTUP: JVM & MEMORY (M1 Max Tuned)
+# ============================================================
+startup --max_idle_secs=10800
+startup --host_jvm_args=-Xmx16g
+startup --host_jvm_args=-XX:+UseG1GC
+startup --host_jvm_args=-XX:MaxGCPauseMillis=20
+
+# ============================================================
+# 3. COMMON SETTINGS
+# ============================================================
+common --announce_rc
+common --color=yes
+common --watchfs
+common --incompatible_strict_action_env
+common --repository_cache=/tmp/bazel-repo-cache
+build --symlink_prefix=.bazel/
+
+# ============================================================
+# 4. DEFAULT PERFORMANCE (Speed > Binary Quality)
+# ============================================================
+build --compilation_mode=fastbuild
+build --copt=-O0
+build --copt=-g0
+build --strip=always
+build --features=-dsym_selection
+
+# Resource limits (Individual lines for syntax)
+build --local_resources=cpu=8
+build --local_resources=memory=24576
+build --jobs=8
+
+# I/O Speedups
+build --nolegacy_external_runfiles
+build --nobuild_runfile_links
+build --reuse_sandbox_directories
+
+# ============================================================
+# 5. DOCKER CONFIG (--config=docker) - ULTRA PERFORMANCE
+# ============================================================
+# Matches your Rancher allocation (9 CPUs)
+build:docker --jobs=9
+build:docker --local_resources=cpu=9
+build:docker --local_resources=memory=32768
+
+# Network-Only Remote Cache (Strictly for Docker)
+build:docker --remote_cache=grpc://host.docker.internal:9092
+build:docker --remote_cache_compression=true
+build:docker --remote_upload_local_results=true
+build:docker --remote_download_regex=.*
+build:docker --disk_cache=
+
+# The "Secret Sauce" for Docker-on-Mac Speed:
+# 1. Disable Sandboxing (Docker is already an isolated environment)
+build:docker --spawn_strategy=local
+build:docker --strategy=CppCompile=local
+build:docker --strategy=Javac=worker
+build:docker --genrule_strategy=local
+
+# 2. Performance & Workers
+build:docker --worker_max_instances=8
+build:docker --nobuild_runfile_links
+build:docker --action_env=PATH
+build:docker --strip=never
+build:docker --nowatchfs
+
+# 3. ULTRA LINKER & MEMORY
+build:docker --repo_env=CC=clang
+build:docker --repo_env=CXX=clang++
+build:docker --linkopt=-fuse-ld=lld
+build:docker --linkopt=-Wl,--threads=9
+build:docker --gc_thrashing_threshold=90
+build:docker --cc_output_directory_tag=docker
+build:docker --nolegacy_external_runfiles
+
+# ============================================================
+# 6. MACOS NATIVE CONFIG (--config=macos)
+# ============================================================
+build:macos --jobs=10
+build:macos --cpu=darwin_arm64
+build:macos --macos_cpus=arm64
+build:macos --apple_generate_dsym=false
+
+# Use Local Disk Cache only for macOS Host
+build:macos --disk_cache=~/Library/Caches/bazel-disk-cache
+
+build:macos --copt=-faligned-allocation
+build:macos --copt=-mmacosx-version-min=11.0
+build:macos --linkopt=-mmacosx-version-min=11.0

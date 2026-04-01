@@ -1,0 +1,36 @@
+module(
+    name = "atlas",
+    version = "0.1.0",
+)
+
+# Core Rules
+bazel_dep(name = "rules_cc", version = "0.2.17")
+bazel_dep(name = "rules_python", version = "1.7.0") # Align with resolved
+
+# Base System Dependencies
+bazel_dep(name = "grpc", version = "1.70.1", repo_name = "com_github_grpc_grpc")
+bazel_dep(name = "protobuf", version = "33.4", repo_name = "com_google_protobuf")
+bazel_dep(name = "rules_proto", version = "7.1.0")
+bazel_dep(name = "abseil-cpp", version = "20250814.1", repo_name = "com_google_absl")
+
+# Explicitly add updated rules to fix Bazel 9 CcInfo removal errors
+bazel_dep(name = "rules_go", version = "0.60.0", repo_name = "io_bazel_rules_go")
+bazel_dep(name = "rules_foreign_cc", version = "0.15.1")
+
+# Testing & Benchmarking 
+bazel_dep(name = "googletest", version = "1.17.0")
+bazel_dep(name = "google_benchmark", version = "1.8.4", repo_name = "com_github_google_benchmark")
+bazel_dep(name = "fmt", version = "10.2.1")
+
+# Python Toolchain (Updated to Python 3.13 as requested)
+python = use_extension("@rules_python//python/extensions:python.bzl", "python")
+python.toolchain(python_version = "3.13")
+
+# PIP package integrations mapped to our root requirements.txt
+pip = use_extension("@rules_python//python/extensions:pip.bzl", "pip")
+pip.parse(
+    hub_name = "pip",
+    python_version = "3.13",
+    requirements_lock = "//:requirements.txt",
+)
+use_repo(pip, "pip")
