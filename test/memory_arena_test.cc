@@ -16,18 +16,18 @@ TEST(MemoryArenaTest, AllocatesRequestedSize) {
   EXPECT_EQ(arena.Size(), kSize);
 }
 
-TEST(MemoryArenaTest, ReadWriteInts) {
+TEST(MemoryArenaTest, ReadWriteIntegers) {
   constexpr size_t kSize = 4096;
   MemoryArena arena(kSize);
 
-  auto* data = static_cast<Element*>(arena.Base());
-  size_t count = kSize / sizeof(Element);
+  auto* data = static_cast<uint64_t*>(arena.Base());
+  size_t count = kSize / sizeof(uint64_t);
 
   for (size_t i = 0; i < count; ++i) {
-    data[i] = static_cast<Element>(i) * 137;
+    data[i] = static_cast<uint64_t>(i) * 137;
   }
   for (size_t i = 0; i < count; ++i) {
-    EXPECT_EQ(data[i], static_cast<Element>(i) * 137);
+    EXPECT_EQ(data[i], static_cast<uint64_t>(i) * 137);
   }
 }
 

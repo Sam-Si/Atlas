@@ -18,6 +18,7 @@ common --announce_rc
 common --color=yes
 common --watchfs
 common --incompatible_strict_action_env
+common --incompatible_autoload_externally=+@rules_cc,+@rules_java,+@rules_proto
 common --repository_cache=/tmp/bazel-repo-cache
 build --symlink_prefix=.bazel/
 

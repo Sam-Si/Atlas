@@ -1,4 +1,5 @@
 #include "src/core/external_sort.h"
+#include "src/core/types.h"
 
 #include <cinttypes>
 #include <cstdio>
@@ -8,14 +9,14 @@
 
 static void Usage(const char* prog) {
   fprintf(stderr,
-    "Atlas External Sort — sort integers (one per line) within a fixed RAM budget.\n\n"
+    "Atlas External Sort — Sort 128-byte binary records within a fixed RAM budget.\n\n"
     "Usage: %s --input=FILE --output=FILE [options]\n\n"
     "Options:\n"
-    "  --input=FILE       Input text file (one integer per line)\n"
-    "  --output=FILE      Output text file (sorted)\n"
-    "  --temp-dir=DIR     Directory for temporary run files [/tmp/atlas_sort]\n"
-    "  --arena=BYTES      Arena size in bytes [402653184 = 384 MB]\n",
-    prog);
+    "  --input=FILE       Input binary file (128-byte records)\n"
+    "  --output=FILE      Output binary file (sorted)\n"
+    "  --temp-dir=DIR     Directory for temporary spill files [/tmp/atlas_sort]\n"
+    "  --arena=BYTES      Arena size in bytes [%zu]\n",
+    prog, atlas::kDefaultArenaBytes);
   exit(1);
 }
 
@@ -42,37 +43,28 @@ int main(int argc, char* argv[]) {
     "  Temp dir: %s\n"
     "  Arena:    %.1f MB\n\n",
     cfg.input_path.c_str(), cfg.output_path.c_str(),
-    cfg.temp_dir.c_str(), cfg.arena_bytes / (1024.0 * 1024.0));
+    cfg.temp_dir.c_str(), static_cast<double>(cfg.arena_bytes) / (1024.0 * 1024.0));
 
-  const size_t arena_bytes = cfg.arena_bytes;  // save before move
-  atlas::ExternalSort sorter(std::move(cfg));
+  atlas::ExternalSort sorter(cfg);
   atlas::SortStats stats = sorter.Run();
 
   fprintf(stderr,
     "\n═══ Results ═══════════════════════════\n"
-    "  Elements sorted: %zu\n"
-    "  Runs generated:  %zu\n"
-    "  Phase 1 (sort):  %.3f s\n"
+    "  Records sorted:  %zu\n"
+    "  Spill files:     %zu\n"
+    "  Phase 1 (spill): %.3f s\n"
     "  Phase 2 (merge): %.3f s\n"
     "  ─────────────────────────\n"
     "  TOTAL TIME:      %.3f s\n"
     "\n"
     "── Memory ────────────────────────────\n"
-    "  Peak RSS (VmHWM):  %zu MB\n"
-    "  Peak anon (arena): %zu MB\n"
-    "  Peak file (cache): %zu MB\n"
-    "  Arena configured:  %.0f MB\n"
-    "  Non-arena overhead:%zu MB\n"
+    "  Peak RSS (getrusage): %zu MB\n"
+    "  Arena configured:     %.0f MB\n"
     "═══════════════════════════════════════\n",
     stats.total_elements, stats.num_runs,
     stats.phase1_secs, stats.phase2_secs, stats.total_secs,
     stats.peak_rss_kb / 1024,
-    stats.peak_anon_kb / 1024,
-    stats.peak_file_kb / 1024,
-    arena_bytes / (1024.0 * 1024.0),
-    stats.peak_anon_kb / 1024 > arena_bytes / (1024 * 1024)
-        ? stats.peak_anon_kb / 1024 - arena_bytes / (1024 * 1024)
-        : 0);
+    static_cast<double>(cfg.arena_bytes) / (1024.0 * 1024.0));
 
   return 0;
 }

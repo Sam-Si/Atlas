@@ -8,6 +8,12 @@ cc_library(
 )
 
 cc_library(
+    name = "record_comparator",
+    hdrs = ["record_comparator.h"],
+    deps = [":types"],
+)
+
+cc_library(
     name = "memory_arena",
     srcs = ["memory_arena.cc"],
     hdrs = ["memory_arena.h"],
@@ -42,6 +48,17 @@ cc_library(
         ":mem_monitor",
         ":memory_arena",
         ":radix_sort",
+        ":record_comparator",
+        ":types",
+    ],
+)
+
+cc_library(
+    name = "joiner",
+    srcs = ["joiner.cc"],
+    hdrs = ["joiner.h"],
+    deps = [
+        ":io",
         ":types",
     ],
 )

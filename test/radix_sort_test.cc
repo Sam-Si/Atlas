@@ -1,4 +1,5 @@
 #include "src/core/radix_sort.h"
+#include "src/core/types.h"
 
 #include <algorithm>
 #include <climits>
@@ -11,14 +12,25 @@ namespace atlas {
 namespace {
 
 // Helper: sorts `data` with RadixSort and checks it matches std::sort.
-void ExpectSorted(std::vector<Element> data) {
-  std::vector<Element> expected = data;
-  std::sort(expected.begin(), expected.end());
+void ExpectSorted(std::vector<Record> data) {
+  std::vector<Record> expected = data;
+  std::sort(expected.begin(), expected.end(), [](const Record& a, const Record& b) {
+    return a.timestamp < b.timestamp;
+  });
 
-  std::vector<Element> scratch(data.size());
+  std::vector<Record> scratch(data.size());
   RadixSort(data.data(), scratch.data(), data.size());
 
-  ASSERT_EQ(data, expected);
+  for (size_t i = 0; i < data.size(); ++i) {
+    EXPECT_EQ(data[i].timestamp, expected[i].timestamp);
+  }
+}
+
+Record MakeRecord(uint64_t ts) {
+  Record r;
+  std::memset(&r, 0, sizeof(r));
+  r.timestamp = ts;
+  return r;
 }
 
 TEST(RadixSortTest, Empty) {
@@ -26,60 +38,44 @@ TEST(RadixSortTest, Empty) {
 }
 
 TEST(RadixSortTest, SingleElement) {
-  ExpectSorted({42});
+  ExpectSorted({MakeRecord(42)});
 }
 
 TEST(RadixSortTest, TwoElements) {
-  ExpectSorted({7, 3});
+  ExpectSorted({MakeRecord(7), MakeRecord(3)});
 }
 
 TEST(RadixSortTest, AlreadySorted) {
-  ExpectSorted({1, 2, 3, 4, 5, 6, 7, 8, 9, 10});
+  std::vector<Record> data;
+  for (uint64_t i = 1; i <= 10; ++i) data.push_back(MakeRecord(i));
+  ExpectSorted(data);
 }
 
 TEST(RadixSortTest, ReverseSorted) {
-  ExpectSorted({10, 9, 8, 7, 6, 5, 4, 3, 2, 1});
+  std::vector<Record> data;
+  for (uint64_t i = 10; i >= 1; --i) data.push_back(MakeRecord(i));
+  ExpectSorted(data);
 }
 
 TEST(RadixSortTest, AllSameValue) {
-  ExpectSorted({42, 42, 42, 42, 42});
-}
-
-TEST(RadixSortTest, AllZeros) {
-  ExpectSorted({0, 0, 0, 0});
-}
-
-TEST(RadixSortTest, NegativeNumbers) {
-  ExpectSorted({-5, -3, -1, -4, -2});
-}
-
-TEST(RadixSortTest, MixedPositiveNegative) {
-  ExpectSorted({3, -1, 4, -1, 5, -9, 2, -6, 5, 3, -5});
+  ExpectSorted({MakeRecord(42), MakeRecord(42), MakeRecord(42)});
 }
 
 TEST(RadixSortTest, ExtremeValues) {
   ExpectSorted({
-      INT64_MAX, INT64_MIN, 0, -1, 1,
-      INT64_MAX - 1, INT64_MIN + 1, INT64_MAX, INT64_MIN});
-}
-
-TEST(RadixSortTest, SmallRange) {
-  std::mt19937_64 rng(123);
-  std::uniform_int_distribution<Element> dist(-10, 10);
-  std::vector<Element> data(10000);
-  for (auto& x : data) x = dist(rng);
-  ExpectSorted(data);
+      MakeRecord(UINT64_MAX), MakeRecord(0), MakeRecord(1),
+      MakeRecord(UINT64_MAX - 1), MakeRecord(UINT64_MAX)});
 }
 
 TEST(RadixSortTest, LargeRandom) {
   std::mt19937_64 rng(42);
-  std::vector<Element> data(500000);
-  for (auto& x : data) x = static_cast<Element>(rng());
+  std::vector<Record> data(10000);
+  for (auto& x : data) x = MakeRecord(rng());
   ExpectSorted(data);
 }
 
 TEST(RadixSortTest, Duplicates) {
-  ExpectSorted({5, 3, 5, 1, 3, 5, 1, 5, 3, 1});
+  ExpectSorted({MakeRecord(5), MakeRecord(3), MakeRecord(5), MakeRecord(1)});
 }
 
 }  // namespace

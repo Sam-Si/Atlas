@@ -13,6 +13,6 @@ namespace atlas {
 /// Handles negative numbers correctly via sign-bit flipping.
 /// Time:  O(8·n) — 8 passes, one per byte of int64_t.
 /// Space: uses `scratch` (same size as data) — no allocations.
-void RadixSort(Element* data, Element* scratch, size_t count);
+void RadixSort(Record* data, Record* scratch, size_t count);
 
 }  // namespace atlas

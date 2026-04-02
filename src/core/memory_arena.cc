@@ -16,7 +16,9 @@ MemoryArena::MemoryArena(size_t size_bytes) : size_(size_bytes) {
     abort();
   }
   // Hint: use transparent huge pages for better TLB behavior during radix sort
+#ifdef MADV_HUGEPAGE
   madvise(base_, size_, MADV_HUGEPAGE);
+#endif
 }
 
 MemoryArena::~MemoryArena() {
